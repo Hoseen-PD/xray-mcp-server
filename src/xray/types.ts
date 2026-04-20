@@ -5,6 +5,14 @@ export interface Test {
   type: string;
   status?: string;
   labels?: string[];
+  steps?: TestStep[];
+}
+
+export interface TestStep {
+  id?: string;
+  action?: string;
+  data?: string;
+  result?: string;
 }
 
 export interface TestExecution {
@@ -21,7 +29,7 @@ export interface TestExecution {
 
 export interface TestRun {
   key: string;
-  status: 'PASS' | 'FAIL' | 'EXECUTING' | 'TODO' | 'ABORTED';
+  status: "PASS" | "FAIL" | "EXECUTING" | "TODO" | "ABORTED";
   comment?: string;
   defects?: string[];
   duration?: number;
@@ -76,18 +84,23 @@ export interface ExecutionResult {
 export interface ExecutionFilters {
   projectKey: string;
   testPlanKey?: string;
-  status?: ('PASS' | 'FAIL' | 'EXECUTING' | 'TODO' | 'ABORTED')[];
+  status?: ("PASS" | "FAIL" | "EXECUTING" | "TODO" | "ABORTED")[];
   startDate?: string;
   endDate?: string;
   limit?: number;
 }
 
 export interface UpdateTestRunData {
-  status: 'PASS' | 'FAIL' | 'EXECUTING' | 'TODO' | 'ABORTED';
+  status: "PASS" | "FAIL" | "EXECUTING" | "TODO" | "ABORTED";
   comment?: string;
   defects?: string[];
   duration?: number;
   actualResult?: string;
 }
 
-export type TestResultFormat = 'junit' | 'cucumber' | 'xray-json' | 'robot' | 'testng';
+export type TestResultFormat =
+  | "junit"
+  | "cucumber"
+  | "xray-json"
+  | "robot"
+  | "testng";

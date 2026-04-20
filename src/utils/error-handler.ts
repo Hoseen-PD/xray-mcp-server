@@ -1,14 +1,14 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError } from "axios";
 
 export class XrayError extends Error {
   constructor(
     message: string,
     public code: string,
     public statusCode?: number,
-    public details?: unknown
+    public details?: unknown,
   ) {
     super(message);
-    this.name = 'XrayError';
+    this.name = "XrayError";
     Object.setPrototypeOf(this, XrayError.prototype);
   }
 }
@@ -21,39 +21,40 @@ export function handleXrayApiError(error: unknown): never {
       const status = axiosError.response.status;
       const data = axiosError.response.data;
 
-      let message = 'Xray API request failed';
-      let code = 'API_ERROR';
+      let message = "Xray API request failed";
+      let code = "API_ERROR";
 
       if (status === 401 || status === 403) {
-        message = 'Authentication failed. Please check your credentials.';
-        code = 'AUTH_FAILED';
-      } else if (status === 404) {
-        message = 'Resource not found. Please check the issue key or test ID.';
-        code = 'NOT_FOUND';
-      } else if (status === 400) {
-        message = 'Invalid request. Please check your input parameters.';
-        code = 'INVALID_REQUEST';
-        if (typeof data === 'object' && data !== null) {
+        message = "Authentication failed. Please check your credentials.";
+        code = "AUTH_FAILED";
+        if (typeof data === "object" && data !== null) {
           const errorData = data as Record<string, unknown>;
           if (errorData.error || errorData.errorMessages || errorData.message) {
-            message = `Invalid request: ${JSON.stringify(errorData)}`;
+            message = `Authentication failed: ${JSON.stringify(errorData)}`;
           }
         }
+      } else if (status === 404) {
+        message = "Resource not found. Please check the issue key or test ID.";
+        code = "NOT_FOUND";
+      } else if (status === 400) {
+        message = "Invalid request. Please check your input parameters.";
+        code = "INVALID_REQUEST";
+        message = `Invalid request: ${JSON.stringify(data)}`;
       } else if (status === 429) {
-        message = 'Rate limit exceeded. Please try again later.';
-        code = 'RATE_LIMIT';
+        message = "Rate limit exceeded. Please try again later.";
+        code = "RATE_LIMIT";
       } else if (status >= 500) {
-        message = 'Xray server error. Please try again later.';
-        code = 'SERVER_ERROR';
+        message = "Xray server error. Please try again later.";
+        code = "SERVER_ERROR";
       }
 
       throw new XrayError(message, code, status, data);
     } else if (axiosError.request) {
       throw new XrayError(
-        'Network error: Unable to reach Xray API. Please check your connection and base URL.',
-        'NETWORK_ERROR',
+        "Network error: Unable to reach Xray API. Please check your connection and base URL.",
+        "NETWORK_ERROR",
         undefined,
-        axiosError.message
+        axiosError.message,
       );
     }
   }
@@ -63,19 +64,14 @@ export function handleXrayApiError(error: unknown): never {
   }
 
   if (error instanceof Error) {
-    throw new XrayError(
-      error.message,
-      'UNKNOWN_ERROR',
-      undefined,
-      error
-    );
+    throw new XrayError(error.message, "UNKNOWN_ERROR", undefined, error);
   }
 
   throw new XrayError(
-    'An unknown error occurred',
-    'UNKNOWN_ERROR',
+    "An unknown error occurred",
+    "UNKNOWN_ERROR",
     undefined,
-    error
+    error,
   );
 }
 
@@ -84,7 +80,7 @@ export function validateTestKey(key: string): void {
   if (!testKeyPattern.test(key)) {
     throw new XrayError(
       `Invalid test key format: "${key}". Expected format: PROJECT-123`,
-      'INVALID_INPUT'
+      "INVALID_INPUT",
     );
   }
 }
@@ -94,7 +90,7 @@ export function validateProjectKey(key: string): void {
   if (!projectKeyPattern.test(key)) {
     throw new XrayError(
       `Invalid project key format: "${key}". Expected format: PROJECT`,
-      'INVALID_INPUT'
+      "INVALID_INPUT",
     );
   }
 }

@@ -1,19 +1,19 @@
-import axios, { AxiosInstance } from 'axios';
-import { XrayClient } from './client.js';
+import axios, { AxiosInstance } from "axios";
+import { handleXrayApiError, XrayError } from "../utils/error-handler.js";
+import { XrayClient } from "./client.js";
 import {
+  ExecutionFilters,
+  ExecutionOptions,
+  ExecutionResult,
+  ImportOptions,
+  ImportResult,
   Test,
   TestExecution,
   TestPlan,
-  ExecutionOptions,
-  ExecutionResult,
-  ExecutionFilters,
-  ImportOptions,
-  ImportResult,
   UpdateTestRunData,
-} from './types.js';
-import { handleXrayApiError } from '../utils/error-handler.js';
+} from "./types.js";
 
-const XRAY_CLOUD_BASE_URL = 'https://xray.cloud.getxray.app/api/v2';
+const XRAY_CLOUD_BASE_URL = "https://eu.xray.cloud.getxray.app/api/v2";
 const TOKEN_EXPIRY_BUFFER = 60000; // 1 minute buffer
 
 export class XrayCloudClient implements XrayClient {
@@ -29,7 +29,7 @@ export class XrayCloudClient implements XrayClient {
     this.axiosInstance = axios.create({
       baseURL: XRAY_CLOUD_BASE_URL,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
@@ -65,22 +65,26 @@ export class XrayCloudClient implements XrayClient {
         },
         {
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       this.authToken = response.data;
       // Tokens typically expire in 15 minutes, set expiry to 14 minutes from now
       this.tokenExpiry = new Date(Date.now() + 14 * 60 * 1000);
     } catch (error) {
+      console.log("Authentication failed:", error);
       handleXrayApiError(error);
     }
   }
 
-  async executeTests(testKeys: string[], options: ExecutionOptions): Promise<ExecutionResult> {
+  async executeTests(
+    testKeys: string[],
+    options: ExecutionOptions,
+  ): Promise<ExecutionResult> {
     try {
-      const response = await this.axiosInstance.post('/graphql', {
+      const response = await this.axiosInstance.post("/graphql", {
         query: `
           mutation CreateTestExecution($input: CreateTestExecutionInput!) {
             createTestExecution(input: $input) {
@@ -119,7 +123,7 @@ export class XrayCloudClient implements XrayClient {
 
   async getTestExecution(executionKey: string): Promise<TestExecution> {
     try {
-      const response = await this.axiosInstance.post('/graphql', {
+      const response = await this.axiosInstance.post("/graphql", {
         query: `
           query GetTestExecution($issueId: String!) {
             getTestExecution(issueId: $issueId) {
@@ -165,10 +169,10 @@ export class XrayCloudClient implements XrayClient {
   async updateTestRun(
     executionKey: string,
     testKey: string,
-    data: UpdateTestRunData
+    data: UpdateTestRunData,
   ): Promise<void> {
     try {
-      await this.axiosInstance.post('/graphql', {
+      await this.axiosInstance.post("/graphql", {
         query: `
           mutation UpdateTestRunStatus($input: UpdateTestRunStatusInput!) {
             updateTestRunStatus(input: $input)
@@ -188,7 +192,10 @@ export class XrayCloudClient implements XrayClient {
     }
   }
 
-  async importJUnit(xml: string, options: ImportOptions): Promise<ImportResult> {
+  async importJUnit(
+    xml: string,
+    options: ImportOptions,
+  ): Promise<ImportResult> {
     try {
       const params: Record<string, string> = {
         projectKey: options.projectKey,
@@ -196,21 +203,21 @@ export class XrayCloudClient implements XrayClient {
 
       if (options.testPlanKey) params.testPlanKey = options.testPlanKey;
       if (options.testEnvironments?.length) {
-        params.testEnvironments = options.testEnvironments.join(';');
+        params.testEnvironments = options.testEnvironments.join(";");
       }
       if (options.testExecKey) params.testExecKey = options.testExecKey;
       if (options.revision) params.revision = options.revision;
       if (options.fixVersion) params.fixVersion = options.fixVersion;
 
       const response = await this.axiosInstance.post(
-        '/import/execution/junit',
+        "/import/execution/junit",
         xml,
         {
           params,
           headers: {
-            'Content-Type': 'application/xml',
+            "Content-Type": "application/xml",
           },
-        }
+        },
       );
 
       return response.data;
@@ -219,7 +226,10 @@ export class XrayCloudClient implements XrayClient {
     }
   }
 
-  async importCucumber(json: string, options: ImportOptions): Promise<ImportResult> {
+  async importCucumber(
+    json: string,
+    options: ImportOptions,
+  ): Promise<ImportResult> {
     try {
       const params: Record<string, string> = {
         projectKey: options.projectKey,
@@ -227,21 +237,21 @@ export class XrayCloudClient implements XrayClient {
 
       if (options.testPlanKey) params.testPlanKey = options.testPlanKey;
       if (options.testEnvironments?.length) {
-        params.testEnvironments = options.testEnvironments.join(';');
+        params.testEnvironments = options.testEnvironments.join(";");
       }
       if (options.testExecKey) params.testExecKey = options.testExecKey;
       if (options.revision) params.revision = options.revision;
       if (options.fixVersion) params.fixVersion = options.fixVersion;
 
       const response = await this.axiosInstance.post(
-        '/import/execution/cucumber',
+        "/import/execution/cucumber",
         json,
         {
           params,
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       return response.data;
@@ -250,16 +260,19 @@ export class XrayCloudClient implements XrayClient {
     }
   }
 
-  async importXrayJson(json: string, options: ImportOptions): Promise<ImportResult> {
+  async importXrayJson(
+    json: string,
+    options: ImportOptions,
+  ): Promise<ImportResult> {
     try {
       const response = await this.axiosInstance.post(
-        '/import/execution',
+        "/import/execution",
         json,
         {
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       return response.data;
@@ -268,7 +281,10 @@ export class XrayCloudClient implements XrayClient {
     }
   }
 
-  async importRobot(xml: string, options: ImportOptions): Promise<ImportResult> {
+  async importRobot(
+    xml: string,
+    options: ImportOptions,
+  ): Promise<ImportResult> {
     try {
       const params: Record<string, string> = {
         projectKey: options.projectKey,
@@ -276,18 +292,18 @@ export class XrayCloudClient implements XrayClient {
 
       if (options.testPlanKey) params.testPlanKey = options.testPlanKey;
       if (options.testEnvironments?.length) {
-        params.testEnvironments = options.testEnvironments.join(';');
+        params.testEnvironments = options.testEnvironments.join(";");
       }
 
       const response = await this.axiosInstance.post(
-        '/import/execution/robot',
+        "/import/execution/robot",
         xml,
         {
           params,
           headers: {
-            'Content-Type': 'application/xml',
+            "Content-Type": "application/xml",
           },
-        }
+        },
       );
 
       return response.data;
@@ -298,7 +314,7 @@ export class XrayCloudClient implements XrayClient {
 
   async queryExecutions(filters: ExecutionFilters): Promise<TestExecution[]> {
     try {
-      const response = await this.axiosInstance.post('/graphql', {
+      const response = await this.axiosInstance.post("/graphql", {
         query: `
           query GetTestExecutions($jql: String!, $limit: Int) {
             getTestExecutions(jql: $jql, limit: $limit) {
@@ -345,35 +361,70 @@ export class XrayCloudClient implements XrayClient {
       conditions.push(`created <= "${filters.endDate}"`);
     }
 
-    return conditions.join(' AND ');
+    return conditions.join(" AND ");
   }
 
   async getTest(testKey: string): Promise<Test> {
     try {
-      const response = await this.axiosInstance.post('/graphql', {
+      const response = await this.axiosInstance.post("/graphql", {
         query: `
-          query GetTest($issueId: String!) {
-            getTest(issueId: $issueId) {
-              issueId
-              jira(fields: ["key", "summary", "labels"])
-              testType {
-                name
+          query GetTests($jql: String!, $limit: Int!) {
+            getTests(jql: $jql, limit: $limit) {
+              total
+              results {
+                issueId
+                jira(fields: ["key", "summary", "labels"])
+                testType {
+                  name
+                }
+                steps {
+                  id
+                  action
+                  data
+                  result
+                }
               }
             }
           }
         `,
         variables: {
-          issueId: testKey,
+          jql: `key = \"${testKey}\"`,
+          limit: 1,
         },
       });
 
-      const data = response.data.data.getTest;
+      const results = response.data?.data?.getTests?.results;
+      if (!Array.isArray(results) || results.length === 0) {
+        throw new XrayError(
+          `Test not found: ${testKey}`,
+          "NOT_FOUND",
+          404,
+          response.data,
+        );
+      }
+
+      const data = results[0];
+      if (!data?.jira) {
+        throw new XrayError(
+          `Invalid Xray response for test: ${testKey}`,
+          "API_ERROR",
+          undefined,
+          response.data,
+        );
+      }
+
       return {
         key: data.jira.key,
         id: data.issueId,
         summary: data.jira.summary,
-        type: data.testType.name,
+        type: data.testType?.name,
         labels: data.jira.labels,
+        steps: (data.steps || []).map((step: any) => ({
+          id: step?.id,
+          action: step?.action,
+          data: step?.data,
+          result: step?.result,
+        })),
       };
     } catch (error) {
       handleXrayApiError(error);
@@ -382,7 +433,7 @@ export class XrayCloudClient implements XrayClient {
 
   async getTestPlan(planKey: string): Promise<TestPlan> {
     try {
-      const response = await this.axiosInstance.post('/graphql', {
+      const response = await this.axiosInstance.post("/graphql", {
         query: `
           query GetTestPlan($issueId: String!) {
             getTestPlan(issueId: $issueId) {
@@ -413,10 +464,10 @@ export class XrayCloudClient implements XrayClient {
   async createTestExecution(
     projectKey: string,
     summary: string,
-    options?: Partial<ExecutionOptions>
+    options?: Partial<ExecutionOptions>,
   ): Promise<ExecutionResult> {
     try {
-      const response = await this.axiosInstance.post('/graphql', {
+      const response = await this.axiosInstance.post("/graphql", {
         query: `
           mutation CreateTestExecution($input: CreateTestExecutionInput!) {
             createTestExecution(input: $input) {
@@ -450,9 +501,12 @@ export class XrayCloudClient implements XrayClient {
     }
   }
 
-  async associateTestsToExecution(executionKey: string, testKeys: string[]): Promise<void> {
+  async associateTestsToExecution(
+    executionKey: string,
+    testKeys: string[],
+  ): Promise<void> {
     try {
-      await this.axiosInstance.post('/graphql', {
+      await this.axiosInstance.post("/graphql", {
         query: `
           mutation AddTestsToTestExecution($input: AddTestsToTestExecutionInput!) {
             addTestsToTestExecution(input: $input) {
